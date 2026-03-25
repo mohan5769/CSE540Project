@@ -33,18 +33,19 @@ Step 7: Credential Issued (Event Emitted)
 
 ### Step 1: Issuer Creates a Session
 
-The Issuer calls `createSession(title, description, date)` on the CredentialRegistry contract.
+The Issuer calls `createSession(title, description, date, eventType)` on the CredentialRegistry contract.
 
 - **Who can call:** Only addresses with the `Issuer` role
-- **What happens on-chain:** A new `Session` struct is stored with an auto-incremented ID
-- **Event emitted:** `SessionCreated(sessionId, issuerAddress, title)`
+- **What happens on-chain:** A new `Session` struct is stored with an auto-incremented ID, including the event type
+- **Event emitted:** `SessionCreated(sessionId, issuerAddress, eventType, timestamp)`
 
 Example:
 ```
 createSession(
   "CSE540 Lecture 10 - Smart Contract Security",
   "Covers reentrancy attacks, access control patterns",
-  "2026-03-23"
+  "2026-03-23",
+  "lecture"
 )
 // Returns sessionId = 1
 ```
@@ -166,7 +167,7 @@ The original Issuer calls `revokeCredential(credentialId)` on the CredentialRegi
 
 **Event emitted:**
 ```
-CredentialRevoked(credentialId, issuerAddress)
+CredentialRevoked(credentialId, issuerAddress, timestamp)
 ```
 
 After revocation:

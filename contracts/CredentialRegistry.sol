@@ -19,6 +19,7 @@ contract CredentialRegistry {
         string title;
         string description;
         string date;
+        string eventType;
         uint256 createdAt;
     }
 
@@ -53,7 +54,8 @@ contract CredentialRegistry {
     event SessionCreated(
         uint256 indexed sessionId,
         address indexed issuer,
-        string title
+        string eventType,
+        uint256 timestamp
     );
 
     event CredentialIssued(
@@ -65,7 +67,7 @@ contract CredentialRegistry {
         string ipfsURI
     );
 
-    event CredentialRevoked(uint256 indexed credentialId, address indexed issuer);
+    event CredentialRevoked(uint256 indexed credentialId, address indexed issuer, uint256 timestamp);
 
     modifier onlyIssuer() {
         require(
@@ -94,10 +96,12 @@ contract CredentialRegistry {
     function createSession(
         string calldata _title,
         string calldata _description,
-        string calldata _date
+        string calldata _date,
+        string calldata _eventType
     ) external onlyIssuer returns (uint256) {
         require(bytes(_title).length > 0, "Session title cannot be empty");
         require(bytes(_date).length > 0, "Session date cannot be empty");
+        require(bytes(_eventType).length > 0, "Event type cannot be empty");
 
         uint256 sessionId = nextSessionId;
         nextSessionId++;
@@ -108,10 +112,11 @@ contract CredentialRegistry {
             title: _title,
             description: _description,
             date: _date,
+            eventType: _eventType,
             createdAt: block.timestamp
         });
 
-        emit SessionCreated(sessionId, msg.sender, _title);
+        emit SessionCreated(sessionId, msg.sender, _eventType, block.timestamp);
 
         return sessionId;
     }
@@ -129,13 +134,14 @@ contract CredentialRegistry {
             string memory title,
             string memory description,
             string memory date,
+            string memory eventType,
             uint256 createdAt
         )
     {
         Session storage s = sessions[_sessionId];
         require(s.id != 0, "Session does not exist");
 
-        return (s.id, s.issuer, s.title, s.description, s.date, s.createdAt);
+        return (s.id, s.issuer, s.title, s.description, s.date, s.eventType, s.createdAt);
     }
 
     /**
@@ -207,7 +213,7 @@ contract CredentialRegistry {
 
         cred.status = Status.Revoked;
 
-        emit CredentialRevoked(_credentialId, msg.sender);
+        emit CredentialRevoked(_credentialId, msg.sender, block.timestamp);
     }
 
     /**

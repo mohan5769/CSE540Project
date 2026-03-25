@@ -21,14 +21,15 @@ Stored in the `Credential` struct on the Sepolia blockchain:
 
 Stored in the `Session` struct on-chain:
 
-| Field         | Type    | Description                                 |
-|---------------|---------|---------------------------------------------|
-| `id`          | uint256 | Auto-incremented session ID                 |
-| `issuer`      | address | Wallet address of the session creator       |
-| `title`       | string  | Title of the session                        |
-| `description` | string  | Description of the session                  |
-| `date`        | string  | Date of the session (e.g. "2026-03-23")     |
-| `createdAt`   | uint256 | Block timestamp when the session was created|
+| Field         | Type    | Description                                                        |
+|---------------|---------|--------------------------------------------------------------------|
+| `id`          | uint256 | Auto-incremented session ID                                        |
+| `issuer`      | address | Wallet address of the session creator                              |
+| `title`       | string  | Title of the session                                               |
+| `description` | string  | Description of the session                                         |
+| `date`        | string  | Date of the session (e.g. "2026-03-23")                            |
+| `eventType`   | string  | Type of event (lecture, webinar, workshop, conference, guest lecture) |
+| `createdAt`   | uint256 | Block timestamp when the session was created                       |
 
 ## What Goes Off-Chain (IPFS)
 
