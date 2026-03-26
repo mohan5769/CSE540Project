@@ -6,13 +6,17 @@ describe("CredentialRegistry", function () {
   let admin, issuer, holder, other;
   const holderDID = "did:ethr:sepolia:0x1234";
   const issuerDID = "did:ethr:sepolia:0x5678";
-  const sampleHash = ethers.keccak256(ethers.toUtf8Bytes("sample-credential-data"));
+  const sampleHash = ethers.keccak256(
+    ethers.toUtf8Bytes("sample-credential-data"),
+  );
   const sampleIPFS = "ipfs://QmSampleHash123456789";
 
   // Session details
   const sessionTitle = "CSE540 Lecture 10 - Smart Contract Security";
-  const sessionDescription = "Covers reentrancy attacks, access control patterns";
+  const sessionDescription =
+    "Covers reentrancy attacks, access control patterns";
   const sessionDate = "2026-03-23";
+  const sessionEventType = "lecture";
 
   beforeEach(async function () {
     [admin, issuer, holder, other] = await ethers.getSigners();
@@ -22,22 +26,30 @@ describe("CredentialRegistry", function () {
     didRegistry = await DIDRegistry.deploy();
 
     // Deploy CredentialRegistry
-    const CredentialRegistry = await ethers.getContractFactory("CredentialRegistry");
-    credentialRegistry = await CredentialRegistry.deploy(await didRegistry.getAddress());
+    const CredentialRegistry = await ethers.getContractFactory(
+      "CredentialRegistry",
+    );
+    credentialRegistry = await CredentialRegistry.deploy(
+      await didRegistry.getAddress(),
+    );
 
-    // Register the issuer and assign Issuer role (Role.Issuer = 2)
-    await didRegistry.connect(issuer).registerDID(issuerDID);
-    await didRegistry.connect(admin).setRole(issuer.address, 2);
+    await didRegistry.connect(issuer).registerDID();
+    await didRegistry.connect(admin).assignRole(issuer.address, 2);
 
     // Register the holder (default role is Holder)
-    await didRegistry.connect(holder).registerDID(holderDID);
+    await didRegistry.connect(holder).registerDID();
   });
 
   describe("Session Creation", function () {
     it("should allow an issuer to create a session", async function () {
       const tx = await credentialRegistry
         .connect(issuer)
-        .createSession(sessionTitle, sessionDescription, sessionDate);
+        .createSession(
+          sessionTitle,
+          sessionDescription,
+          sessionDate,
+          sessionEventType,
+        );
       await tx.wait();
 
       const session = await credentialRegistry.getSession(1);
@@ -49,34 +61,63 @@ describe("CredentialRegistry", function () {
     });
 
     it("should emit SessionCreated event", async function () {
-      await expect(
-        credentialRegistry.connect(issuer).createSession(sessionTitle, sessionDescription, sessionDate)
-      )
+      const tx = await credentialRegistry
+        .connect(issuer)
+        .createSession(
+          sessionTitle,
+          sessionDescription,
+          sessionDate,
+          sessionEventType,
+        );
+      const receipt = await tx.wait();
+      const block = await ethers.provider.getBlock(receipt.blockNumber);
+
+      await expect(tx)
         .to.emit(credentialRegistry, "SessionCreated")
-        .withArgs(1, issuer.address, sessionTitle);
+        .withArgs(1, issuer.address, sessionEventType, block.timestamp);
     });
 
     it("should reject session creation from non-issuer", async function () {
       await expect(
-        credentialRegistry.connect(holder).createSession(sessionTitle, sessionDescription, sessionDate)
+        credentialRegistry
+          .connect(holder)
+          .createSession(
+            sessionTitle,
+            sessionDescription,
+            sessionDate,
+            sessionEventType,
+          ),
       ).to.be.revertedWith("Only issuers can perform this action");
     });
 
     it("should reject empty session title", async function () {
       await expect(
-        credentialRegistry.connect(issuer).createSession("", sessionDescription, sessionDate)
+        credentialRegistry
+          .connect(issuer)
+          .createSession("", sessionDescription, sessionDate, sessionEventType),
       ).to.be.revertedWith("Session title cannot be empty");
     });
 
     it("should reject empty session date", async function () {
       await expect(
-        credentialRegistry.connect(issuer).createSession(sessionTitle, sessionDescription, "")
+        credentialRegistry
+          .connect(issuer)
+          .createSession(
+            sessionTitle,
+            sessionDescription,
+            "",
+            sessionEventType,
+          ),
       ).to.be.revertedWith("Session date cannot be empty");
     });
 
     it("should increment session IDs", async function () {
-      await credentialRegistry.connect(issuer).createSession("Session 1", "Desc 1", "2026-03-23");
-      await credentialRegistry.connect(issuer).createSession("Session 2", "Desc 2", "2026-03-24");
+      await credentialRegistry
+        .connect(issuer)
+        .createSession("Session 1", "Desc 1", "2026-03-23", "lecture");
+      await credentialRegistry
+        .connect(issuer)
+        .createSession("Session 2", "Desc 2", "2026-03-24", "webinar");
 
       const s1 = await credentialRegistry.getSession(1);
       const s2 = await credentialRegistry.getSession(2);
@@ -85,7 +126,9 @@ describe("CredentialRegistry", function () {
     });
 
     it("should revert for non-existent session", async function () {
-      await expect(credentialRegistry.getSession(999)).to.be.revertedWith("Session does not exist");
+      await expect(credentialRegistry.getSession(999)).to.be.revertedWith(
+        "Session does not exist",
+      );
     });
   });
 
@@ -95,7 +138,12 @@ describe("CredentialRegistry", function () {
     beforeEach(async function () {
       const tx = await credentialRegistry
         .connect(issuer)
-        .createSession(sessionTitle, sessionDescription, sessionDate);
+        .createSession(
+          sessionTitle,
+          sessionDescription,
+          sessionDate,
+          sessionEventType,
+        );
       await tx.wait();
       sessionId = 1;
     });
@@ -118,27 +166,42 @@ describe("CredentialRegistry", function () {
 
     it("should emit CredentialIssued event", async function () {
       await expect(
-        credentialRegistry.connect(issuer).issueCredential(holder.address, sessionId, sampleHash, sampleIPFS)
+        credentialRegistry
+          .connect(issuer)
+          .issueCredential(holder.address, sessionId, sampleHash, sampleIPFS),
       )
         .to.emit(credentialRegistry, "CredentialIssued")
-        .withArgs(1, sessionId, issuer.address, holder.address, sampleHash, sampleIPFS);
+        .withArgs(
+          1,
+          sessionId,
+          issuer.address,
+          holder.address,
+          sampleHash,
+          sampleIPFS,
+        );
     });
 
     it("should reject issuance from non-issuer", async function () {
       await expect(
-        credentialRegistry.connect(holder).issueCredential(holder.address, sessionId, sampleHash, sampleIPFS)
+        credentialRegistry
+          .connect(holder)
+          .issueCredential(holder.address, sessionId, sampleHash, sampleIPFS),
       ).to.be.revertedWith("Only issuers can perform this action");
     });
 
     it("should reject issuance to unregistered holder", async function () {
       await expect(
-        credentialRegistry.connect(issuer).issueCredential(other.address, sessionId, sampleHash, sampleIPFS)
+        credentialRegistry
+          .connect(issuer)
+          .issueCredential(other.address, sessionId, sampleHash, sampleIPFS),
       ).to.be.revertedWith("Holder is not registered");
     });
 
     it("should reject issuance for non-existent session", async function () {
       await expect(
-        credentialRegistry.connect(issuer).issueCredential(holder.address, 999, sampleHash, sampleIPFS)
+        credentialRegistry
+          .connect(issuer)
+          .issueCredential(holder.address, 999, sampleHash, sampleIPFS),
       ).to.be.revertedWith("Session does not exist");
     });
 
@@ -146,13 +209,20 @@ describe("CredentialRegistry", function () {
       await expect(
         credentialRegistry
           .connect(issuer)
-          .issueCredential(holder.address, sessionId, ethers.ZeroHash, sampleIPFS)
+          .issueCredential(
+            holder.address,
+            sessionId,
+            ethers.ZeroHash,
+            sampleIPFS,
+          ),
       ).to.be.revertedWith("Credential hash cannot be empty");
     });
 
     it("should reject empty IPFS URI", async function () {
       await expect(
-        credentialRegistry.connect(issuer).issueCredential(holder.address, sessionId, sampleHash, "")
+        credentialRegistry
+          .connect(issuer)
+          .issueCredential(holder.address, sessionId, sampleHash, ""),
       ).to.be.revertedWith("IPFS URI cannot be empty");
     });
 
@@ -164,7 +234,12 @@ describe("CredentialRegistry", function () {
       const hash2 = ethers.keccak256(ethers.toUtf8Bytes("second-credential"));
       await credentialRegistry
         .connect(issuer)
-        .issueCredential(holder.address, sessionId, hash2, "ipfs://QmSecondHash");
+        .issueCredential(
+          holder.address,
+          sessionId,
+          hash2,
+          "ipfs://QmSecondHash",
+        );
 
       const cred1 = await credentialRegistry.getCredential(1);
       const cred2 = await credentialRegistry.getCredential(2);
@@ -185,14 +260,23 @@ describe("CredentialRegistry", function () {
 
   describe("Credential Retrieval", function () {
     beforeEach(async function () {
-      await credentialRegistry.connect(issuer).createSession(sessionTitle, sessionDescription, sessionDate);
+      await credentialRegistry
+        .connect(issuer)
+        .createSession(
+          sessionTitle,
+          sessionDescription,
+          sessionDate,
+          sessionEventType,
+        );
       await credentialRegistry
         .connect(issuer)
         .issueCredential(holder.address, 1, sampleHash, sampleIPFS);
     });
 
     it("should return credentials by holder", async function () {
-      const ids = await credentialRegistry.getCredentialsByHolder(holder.address);
+      const ids = await credentialRegistry.getCredentialsByHolder(
+        holder.address,
+      );
       expect(ids.length).to.equal(1);
       expect(ids[0]).to.equal(1);
     });
@@ -205,14 +289,21 @@ describe("CredentialRegistry", function () {
 
     it("should revert for non-existent credential", async function () {
       await expect(credentialRegistry.getCredential(999)).to.be.revertedWith(
-        "Credential does not exist"
+        "Credential does not exist",
       );
     });
   });
 
   describe("Credential Verification", function () {
     beforeEach(async function () {
-      await credentialRegistry.connect(issuer).createSession(sessionTitle, sessionDescription, sessionDate);
+      await credentialRegistry
+        .connect(issuer)
+        .createSession(
+          sessionTitle,
+          sessionDescription,
+          sessionDate,
+          sessionEventType,
+        );
       await credentialRegistry
         .connect(issuer)
         .issueCredential(holder.address, 1, sampleHash, sampleIPFS);
@@ -236,23 +327,32 @@ describe("CredentialRegistry", function () {
     });
 
     it("anyone can verify a credential", async function () {
-      const valid = await credentialRegistry.connect(other).verifyCredential(1, sampleHash);
+      const valid = await credentialRegistry
+        .connect(other)
+        .verifyCredential(1, sampleHash);
       expect(valid).to.equal(true);
     });
   });
 
   describe("Credential Revocation", function () {
     beforeEach(async function () {
-      await credentialRegistry.connect(issuer).createSession(sessionTitle, sessionDescription, sessionDate);
+      await credentialRegistry
+        .connect(issuer)
+        .createSession(
+          sessionTitle,
+          sessionDescription,
+          sessionDate,
+          sessionEventType,
+        );
       await credentialRegistry
         .connect(issuer)
         .issueCredential(holder.address, 1, sampleHash, sampleIPFS);
     });
 
     it("should allow the original issuer to revoke", async function () {
-      await expect(credentialRegistry.connect(issuer).revokeCredential(1))
-        .to.emit(credentialRegistry, "CredentialRevoked")
-        .withArgs(1, issuer.address);
+      await expect(
+        credentialRegistry.connect(issuer).revokeCredential(1),
+      ).to.emit(credentialRegistry, "CredentialRevoked");
 
       const cred = await credentialRegistry.getCredential(1);
       expect(cred.status).to.equal(1); // Status.Revoked = 1
@@ -260,20 +360,20 @@ describe("CredentialRegistry", function () {
 
     it("should reject revocation from non-issuer", async function () {
       await expect(
-        credentialRegistry.connect(other).revokeCredential(1)
+        credentialRegistry.connect(other).revokeCredential(1),
       ).to.be.revertedWith("Only the original issuer can revoke");
     });
 
     it("should reject double revocation", async function () {
       await credentialRegistry.connect(issuer).revokeCredential(1);
       await expect(
-        credentialRegistry.connect(issuer).revokeCredential(1)
+        credentialRegistry.connect(issuer).revokeCredential(1),
       ).to.be.revertedWith("Credential is already revoked");
     });
 
     it("should reject revocation of non-existent credential", async function () {
       await expect(
-        credentialRegistry.connect(issuer).revokeCredential(999)
+        credentialRegistry.connect(issuer).revokeCredential(999),
       ).to.be.revertedWith("Credential does not exist");
     });
   });
