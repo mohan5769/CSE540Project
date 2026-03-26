@@ -5,3 +5,4 @@ artifacts/
 coverage/
 coverage.json
 typechain-types/
+gas-report.txt
