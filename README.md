@@ -1,4 +1,3 @@
-//created by kinjal
 # Decentralized Identity and Access Management (IAM) dApp
 
 ## Project Description
