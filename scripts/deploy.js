@@ -1,3 +1,4 @@
+//created by mohan
 const hre = require("hardhat");
 
 async function main() {
@@ -14,6 +15,13 @@ async function main() {
   await credentialRegistry.waitForDeployment();
   const credAddress = await credentialRegistry.getAddress();
   console.log("CredentialRegistry deployed to:", credAddress);
+
+  // Deploy VerificationRegistry with both addresses
+  const VerificationRegistry = await hre.ethers.getContractFactory("VerificationRegistry");
+  const verificationRegistry = await VerificationRegistry.deploy(didAddress, credAddress);
+  await verificationRegistry.waitForDeployment();
+  const verAddress = await verificationRegistry.getAddress();
+  console.log("VerificationRegistry deployed to:", verAddress);
 }
 
 main().catch((error) => {

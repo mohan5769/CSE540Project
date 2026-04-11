@@ -56,6 +56,8 @@ contract VerificationRegistry {
 
     /// @notice Sets references to DIDRegistry and CredentialRegistry
     constructor(address _didRegistry, address _credentialRegistry) {
+        didRegistry = DIDRegistry(_didRegistry);
+        credentialRegistry = CredentialRegistry(_credentialRegistry);
     }
 
     /// @notice Verify a credential and emit a CredentialVerified event
@@ -66,6 +68,8 @@ contract VerificationRegistry {
         uint256 _credentialId,
         bytes32 _credentialHash
     ) external returns (bool result) {
+        result = credentialRegistry.verifyCredential(_credentialId, _credentialHash);
+        emit CredentialVerified(_credentialId, msg.sender, result, block.timestamp);
     }
 
     /// @notice Fetch on-chain credential metadata (hash, status, IPFS URI)
@@ -84,6 +88,7 @@ contract VerificationRegistry {
             uint256 issuedAt
         )
     {
+        return credentialRegistry.getCredential(_credentialId);
     }
 
     /// @notice Fetch all credential IDs belonging to the caller
@@ -94,5 +99,6 @@ contract VerificationRegistry {
         onlyRegistered
         returns (uint256[] memory)
     {
+        return credentialRegistry.getCredentialsByHolder(msg.sender);
     }
 }
