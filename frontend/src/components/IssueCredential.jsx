@@ -60,6 +60,7 @@ export default function IssueCredential({ currentAddress }) {
         credentialHash,
         ipfsURI,
         payload: credentialPayload,
+        session,
       });
 
       setHolderAddress("");
@@ -72,8 +73,18 @@ export default function IssueCredential({ currentAddress }) {
   }
 
   return (
-    <div className="card">
-      <h2>Issue Credential</h2>
+    <div className="card issuer-card">
+      <div className="issuer-head">
+        <div>
+          <h2>Issue Credential</h2>
+          <p className="muted">
+            Generate an attendance credential, store the full JSON off-chain,
+            and anchor its hash on-chain.
+          </p>
+        </div>
+        <span className="issuer-tag">Hybrid flow</span>
+      </div>
+
       <form onSubmit={handleIssue}>
         <div className="form-group">
           <label>Holder Wallet Address</label>
@@ -92,35 +103,57 @@ export default function IssueCredential({ currentAddress }) {
             min="1"
             value={sessionId}
             onChange={(e) => setSessionId(e.target.value)}
+            placeholder="1"
             required
           />
         </div>
 
         <button type="submit" disabled={loading}>
-          {loading ? "Issuing..." : "Issue Credential"}
+          {loading ? "Issuing Credential..." : "Issue Credential"}
         </button>
       </form>
 
-      {error ? <p className="error">{error}</p> : null}
+      {error ? (
+        <div className="alert error-alert" style={{ marginTop: 14 }}>
+          {error}
+        </div>
+      ) : null}
 
       {result ? (
-        <div style={{ marginTop: 12 }}>
-          <p className="success">Credential issued successfully.</p>
-          <p>
-            <strong>Credential ID:</strong> {result.credentialId}
+        <div className="issuer-result success-panel">
+          <h3>Credential Issued</h3>
+          <p className="muted">
+            The credential JSON was generated off-chain, pinned to IPFS, hashed
+            locally, and registered on-chain.
           </p>
-          <p>
-            <strong>IPFS URI:</strong>
-          </p>
-          <div className="code">{result.ipfsURI}</div>
-          <p>
-            <strong>Credential Hash:</strong>
-          </p>
-          <div className="code">{result.credentialHash}</div>
-          <p>
-            <strong>Payload:</strong>
-          </p>
-          <pre>{JSON.stringify(result.payload, null, 2)}</pre>
+
+          <div className="result-grid">
+            <div className="result-box">
+              <span className="meta-label">Credential ID</span>
+              <strong>{result.credentialId}</strong>
+            </div>
+            <div className="result-box">
+              <span className="meta-label">Session</span>
+              <strong>
+                {result.session?.title || `#${result.session?.id}`}
+              </strong>
+            </div>
+          </div>
+
+          <div className="credential-section">
+            <span className="meta-label">IPFS URI</span>
+            <div className="code">{result.ipfsURI}</div>
+          </div>
+
+          <div className="credential-section">
+            <span className="meta-label">Credential Hash</span>
+            <div className="code">{result.credentialHash}</div>
+          </div>
+
+          <details className="credential-details">
+            <summary>View Issued Credential JSON</summary>
+            <pre>{JSON.stringify(result.payload, null, 2)}</pre>
+          </details>
         </div>
       ) : null}
     </div>

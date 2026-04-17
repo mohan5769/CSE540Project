@@ -49,15 +49,26 @@ export default function CreateSession() {
   }
 
   return (
-    <div className="card">
-      <h2>Create Session</h2>
+    <div className="card issuer-card">
+      <div className="issuer-head">
+        <div>
+          <h2>Create Session</h2>
+          <p className="muted">
+            Create an attendance event on-chain that can later be used to issue
+            credentials.
+          </p>
+        </div>
+        <span className="issuer-tag">On-chain action</span>
+      </div>
+
       <form onSubmit={handleSubmit}>
         <div className="form-group">
-          <label>Title</label>
+          <label>Session Title</label>
           <input
             name="title"
             value={form.title}
             onChange={updateField}
+            placeholder="Blockchain Lecture"
             required
           />
         </div>
@@ -68,10 +79,11 @@ export default function CreateSession() {
             name="description"
             value={form.description}
             onChange={updateField}
+            placeholder="Week 1 lecture on decentralized identity and verifiable credentials."
           />
         </div>
 
-        <div className="row">
+        <div className="issuer-grid">
           <div className="form-group">
             <label>Date</label>
             <input
@@ -100,12 +112,29 @@ export default function CreateSession() {
         </div>
 
         <button type="submit" disabled={loading}>
-          {loading ? "Creating..." : "Create Session"}
+          {loading ? "Creating Session..." : "Create Session"}
         </button>
       </form>
 
-      {sessionId ? <p className="success">Session ID: {sessionId}</p> : null}
-      {error ? <p className="error">{error}</p> : null}
+      {sessionId ? (
+        <div className="issuer-result success-panel">
+          <h3>Session Created</h3>
+          <p className="muted">
+            This session was stored on-chain and can now be used for credential
+            issuance.
+          </p>
+          <div className="result-pill">
+            <span>Session ID</span>
+            <strong>{sessionId}</strong>
+          </div>
+        </div>
+      ) : null}
+
+      {error ? (
+        <div className="alert error-alert" style={{ marginTop: 14 }}>
+          {error}
+        </div>
+      ) : null}
     </div>
   );
 }
