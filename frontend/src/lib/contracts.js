@@ -9,6 +9,8 @@ const DID_ABI = [
   "function isRegistered(address _user) view returns (bool)",
   "function getRole(address _user) view returns (uint8)",
   "function isActive(address _user) view returns (bool)",
+  "function assignRole(address _user, uint8 _role)",
+  "function deactivateDID(address _user)",
 ];
 
 const CREDENTIAL_ABI = [
@@ -228,4 +230,16 @@ export async function getCredentialsForHolder(holderAddress) {
 export async function getDidForAddress(address) {
   const { didRegistry } = await getContracts();
   return didRegistry.getDID(address);
+}
+
+export async function assignRole(userAddress, roleNumber) {
+  const { didRegistry } = await getContracts();
+  const tx = await didRegistry.assignRole(userAddress, roleNumber);
+  await tx.wait();
+}
+
+export async function deactivateDID(userAddress) {
+  const { didRegistry } = await getContracts();
+  const tx = await didRegistry.deactivateDID(userAddress);
+  await tx.wait();
 }

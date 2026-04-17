@@ -23,6 +23,9 @@ export default function VerifyCredential() {
           valid: false,
           reason: "Credential is revoked.",
           credential,
+          payload: null,
+          localHash: null,
+          contractValid: false,
         });
         return;
       }
@@ -31,6 +34,7 @@ export default function VerifyCredential() {
       const localHash = hashCredential(payload);
       const hashMatches =
         localHash.toLowerCase() === credential.credentialHash.toLowerCase();
+
       const contractValid = await verifyCredentialByHash(
         credentialId,
         localHash,
@@ -40,7 +44,7 @@ export default function VerifyCredential() {
         valid: hashMatches && contractValid,
         reason:
           hashMatches && contractValid
-            ? "Credential is valid."
+            ? "Credential is valid and matches the on-chain record."
             : "Credential data does not match the on-chain hash.",
         credential,
         payload,
@@ -54,9 +58,22 @@ export default function VerifyCredential() {
     }
   }
 
+  const statusClass = result?.valid
+    ? "verify-status valid"
+    : "verify-status invalid";
+
   return (
-    <div className="card">
-      <h2>Verify Credential</h2>
+    <div className="card verify-card">
+      <div className="verify-header">
+        <div>
+          <h2>Verify Credential</h2>
+          <p className="muted">
+            Enter a credential ID to validate it using on-chain hash comparison
+            and IPFS data.
+          </p>
+        </div>
+      </div>
+
       <form onSubmit={handleVerify}>
         <div className="form-group">
           <label>Credential ID</label>
@@ -65,23 +82,58 @@ export default function VerifyCredential() {
             min="1"
             value={credentialId}
             onChange={(e) => setCredentialId(e.target.value)}
+            placeholder="Enter credential ID"
             required
           />
         </div>
 
         <button type="submit" disabled={loading}>
-          {loading ? "Verifying..." : "Verify"}
+          {loading ? "Verifying..." : "Verify Credential"}
         </button>
       </form>
 
-      {error ? <p className="error">{error}</p> : null}
+      {error ? (
+        <div className="alert error-alert" style={{ marginTop: 14 }}>
+          {error}
+        </div>
+      ) : null}
 
       {result ? (
-        <div style={{ marginTop: 12 }}>
-          <p className={result.valid ? "success" : "error"}>{result.reason}</p>
+        <div className="verify-result">
+          <div className={statusClass}>
+            <div className="verify-icon">{result.valid ? "✓" : "!"}</div>
+            <div>
+              <h3>
+                {result.valid ? "Valid Credential" : "Invalid Credential"}
+              </h3>
+              <p>{result.reason}</p>
+            </div>
+          </div>
 
-          {result.credential ? (
-            <>
+          <div className="verify-grid">
+            <div className="verify-box">
+              <h4>On-chain Record</h4>
+              <p>
+                <strong>Credential ID:</strong> {result.credential.id}
+              </p>
+              <p>
+                <strong>Status:</strong> {result.credential.statusLabel}
+              </p>
+              <p>
+                <strong>Session ID:</strong> {result.credential.sessionId}
+              </p>
+              <p>
+                <strong>Issuer:</strong>
+              </p>
+              <div className="code">{result.credential.issuer}</div>
+              <p>
+                <strong>Holder:</strong>
+              </p>
+              <div className="code">{result.credential.holder}</div>
+            </div>
+
+            <div className="verify-box">
+              <h4>Hash Comparison</h4>
               <p>
                 <strong>On-chain Hash:</strong>
               </p>
@@ -90,32 +142,46 @@ export default function VerifyCredential() {
               {result.localHash ? (
                 <>
                   <p>
-                    <strong>Locally Computed Hash:</strong>
+                    <strong>Local Hash:</strong>
                   </p>
                   <div className="code">{result.localHash}</div>
                 </>
               ) : null}
 
-              <p>
-                <strong>Status:</strong> {result.credential.statusLabel}
+              <p style={{ marginTop: 10 }}>
+                <strong>Contract Verification:</strong>{" "}
+                {result.contractValid ? "Passed" : "Failed"}
               </p>
-              <p>
-                <strong>IPFS URI:</strong>
-              </p>
-              <div className="code">{result.credential.ipfsURI}</div>
-            </>
-          ) : null}
+            </div>
+          </div>
 
-          {result.payload ? (
-            <>
-              <p>
-                <strong>Credential JSON:</strong>
-              </p>
-              <pre>{JSON.stringify(result.payload, null, 2)}</pre>
-            </>
-          ) : null}
+          <div className="verify-box" style={{ marginTop: 14 }}>
+            <h4>IPFS / Off-chain Data</h4>
+            <p>
+              <strong>IPFS URI:</strong>
+            </p>
+            <div className="code">{result.credential.ipfsURI}</div>
+
+            {result.payload ? (
+              <>
+                <p>
+                  <strong>Credential JSON:</strong>
+                </p>
+                <pre>{JSON.stringify(result.payload, null, 2)}</pre>
+              </>
+            ) : (
+              <p className="muted">No off-chain payload loaded.</p>
+            )}
+          </div>
         </div>
-      ) : null}
+      ) : (
+        <div className="verify-empty">
+          <p className="muted">
+            Verification checks whether the off-chain credential data matches
+            the hash stored on-chain.
+          </p>
+        </div>
+      )}
     </div>
   );
 }
